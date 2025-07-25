@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Main window</title>
+    <script defer>
+      console.assert(
+        "getScreenDetails" in window,
+        "Browser doesn't support Window Management"
+      );
+
+      const bc = new BroadcastChannel("keyboard");
+      bc.addEventListener("message", ({ data }) => {
+        console.info("Other window is active");
+        console.info(`Keydown: ${data}`);
+      });
+
+      window.addEventListener("keydown", ({ key }) => {
+        console.info("This window is active");
+        console.info(`Keydown: ${key}`);
+      });
+
+      function openWindow() {
+        console.assert(screen.isExtended, "No extended screen");
+        if (!screen.isExtended) {
+          return;
+        }
+
+        const winProxy = window.getScreenDetails().then((screenDetails) => {
+          console.log(`Screens: `, screenDetails.screens);
+          console.assert(screenDetails.screens.length > 1, "Missing screen");
+
+          const scrn = screenDetails.screens[1];
+          const windowFeatures = `left=${scrn.availLeft},top=${scrn.availTop},width=${scrn.availWidth},height=${scrn.availHeight}`;
+
+          // There's no option to open new window fullscreen apart from old popup that doesn't seem to mix with window management
+          window.open("window.html", "FullScreenWindow", windowFeatures);
+
+          // Even if we now try to access an element in the opened window (eg via opener) and full screen it, it fails
+          // It seems window.open cancels the transient activation
+          // We can't go full fullscreen in the new window on opening either as transient activation is false
+          // So need a button on the new window forcing another unwanted user interaction
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <button id="btn" onclick="openWindow()">Open Fullscreen Window</button>
+    <p>Press a key</p>
+  </body>
+</html>
